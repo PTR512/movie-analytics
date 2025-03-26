@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+import requests
+import pandas as pd
 
 # Load environment variables
 load_dotenv()
@@ -23,6 +25,39 @@ class MovieAnalyzer:
             )
 
         self.base_url = 'https://api.themoviedb.org/3'
+
+    def fetch_popular_movies(self, year=2025, limit=100):
+        """
+        Retrieves popular movies from a specific year using TMDB API
+
+        Args:
+            year (int): Production year of movies
+            limit (int): Maximum number of movies to fetch
+
+        Returns:
+            pandas.DataFrame: DataFrame with movie information
+        """
+        movies = []
+        page = 1
+
+        while len(movies) < limit:
+            url = f"{self.base_url}/discover/movie"
+            params = {
+                'api_key': self.api_key,
+                'primary_release_year': year,
+                'sort_by': 'popularity.desc',
+                'page': page
+            }
+
+            response = requests.get(url, params=params).json()
+            movies.extend(response['results'])
+
+            if page >= response['total_pages']:
+                break
+            page += 1
+
+        df_movies = pd.DataFrame(movies)
+        return df_movies[['title', 'vote_average', 'popularity', 'original_language']]
 
 
 if __name__ == "__main__":
