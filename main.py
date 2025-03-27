@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 import requests
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Load environment variables
 load_dotenv()
@@ -75,6 +77,33 @@ class MovieAnalyzer:
             'languages': df['original_language'].value_counts()
         }
         return statistics
+
+    def create_visualizations(self, df):
+        """
+        Creates data visualizations for movies
+
+        Args:
+            df (pandas.DataFrame): DataFrame with movies
+        """
+        plt.figure(figsize=(12, 4))
+
+        # Rating distribution
+        plt.subplot(131)
+        sns.histplot(df['vote_average'], kde=True)
+        plt.title('Rating Distribution')
+
+        # Movie popularity
+        plt.subplot(132)
+        sns.boxplot(x=df['popularity'])
+        plt.title('Movie Popularity')
+
+        # Movie languages
+        plt.subplot(133)
+        df['original_language'].value_counts().plot(kind='pie', autopct='%1.1f%%')
+        plt.title('Movie Languages')
+
+        plt.tight_layout()
+        plt.show()
 
 
 if __name__ == "__main__":
