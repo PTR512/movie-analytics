@@ -105,6 +105,27 @@ class MovieAnalyzer:
         plt.tight_layout()
         plt.show()
 
+    def generate_report(self, year=2023):
+        """
+        Generates a comprehensive report about movies
+
+        Args:
+            year (int): Production year of movies
+        """
+        print(f"Movie Analytics Report ({year})")
+        movies = self.fetch_popular_movies(year)
+        statistics = self.statistical_analysis(movies)
+
+        print("\n--- General Statistics ---")
+        print(f"Average movie rating: {statistics['average_rating']:.2f}")
+        print(f"Popularity median: {statistics['popularity_median']:.2f}")
+
+        print("\n--- Movie Languages ---")
+        print(statistics['languages'])
+
+        self.create_visualizations(movies)
+
 
 if __name__ == "__main__":
     analyzer = MovieAnalyzer()
+    analyzer.generate_report()
