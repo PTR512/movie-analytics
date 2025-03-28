@@ -73,10 +73,6 @@ seaborn
 python-dotenv
 ```
 
-## 🤝 Contributing
-
-Contributions welcome! Please read the contributing guidelines first.
-
 ## 📜 License
 
 [MIT License](LICENSE)
