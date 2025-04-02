@@ -52,6 +52,18 @@ class MovieAnalyzer:
             }
 
             response = requests.get(url, params=params).json()
+
+            for movie in response['results']:
+                # Fetch additional details for each movie
+                movie_id = movie['id']
+                details_url = f"{self.base_url}/movie/{movie_id}"
+                details_params = {'api_key': self.api_key}
+                details = requests.get(details_url, params=details_params).json()
+
+                # Add budget and revenue to the movie data
+                movie['budget'] = details.get('budget', 0)
+                movie['revenue'] = details.get('revenue', 0)
+                movie['runtime'] = details.get('runtime', 0)
             movies.extend(response['results'])
 
             if page >= response['total_pages']:
@@ -59,7 +71,8 @@ class MovieAnalyzer:
             page += 1
 
         df_movies = pd.DataFrame(movies)
-        return df_movies[['title', 'vote_average', 'popularity', 'original_language']]
+        return df_movies[['title', 'vote_average', 'popularity', 'original_language',
+                          'budget', 'revenue', 'runtime']]
 
     def statistical_analysis(self, df):
         """
@@ -74,7 +87,11 @@ class MovieAnalyzer:
         statistics = {
             'average_rating': df['vote_average'].mean(),
             'popularity_median': df['popularity'].median(),
-            'languages': df['original_language'].value_counts()
+            'languages': df['original_language'].value_counts(),
+            'avg_budget': df['budget'].mean() if not df.empty else 0,
+            'avg_revenue': df['revenue'].mean() if not df.empty else 0,
+            'avg_roi': df['roi'].mean() if not df.empty else 0,
+            'avg_runtime': df['runtime'].mean()
         }
         return statistics
 
