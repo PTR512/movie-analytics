@@ -4,6 +4,7 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -66,7 +67,7 @@ class MovieAnalyzer:
                 movie['runtime'] = details.get('runtime', 0)
             movies.extend(response['results'])
 
-            if page >= response['total_pages']:
+            if page >= response['total_pages'] or len(movies) >= limit:
                 break
             page += 1
 
@@ -84,6 +85,9 @@ class MovieAnalyzer:
         Returns:
             dict: Dictionary with key statistics
         """
+        if not df.empty:
+            df['roi'] = (df['revenue'] - df['budget']) / df['budget']
+
         statistics = {
             'average_rating': df['vote_average'].mean(),
             'popularity_median': df['popularity'].median(),
@@ -95,6 +99,43 @@ class MovieAnalyzer:
         }
         return statistics
 
+    def correlation_analysis(self, df):
+        """
+               Analyzes correlations between movie metrics
+
+               Args:
+                   df (pandas.DataFrame): DataFrame with movies
+
+               Returns:
+                   pandas.DataFrame: Correlation matrix
+               """
+        # Filter out movies with zero budget for better analysis
+        df_valid = df[(df['budget'] > 0) & (df['revenue'] > 0)].copy()
+
+        if df_valid.empty:
+            print("Insufficient data for correlation analysis")
+            return None
+
+        # Calculate ROI
+        df_valid['roi'] = (df_valid['revenue'] - df_valid['budget']) / df_valid['budget']
+
+        # Select relevant columns for correlation
+        correlation_data = df_valid[['vote_average', 'popularity', 'budget',
+                                     'revenue', 'runtime', 'roi']]
+
+        # Calculate correlation matrix
+        correlation_matrix = correlation_data.corr()
+
+        # Create correlation heatmap
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm',
+                    fmt='.2f', linewidths=0.5)
+        plt.title('Correlation Between Movie Metrics')
+        plt.tight_layout()
+        plt.show()
+
+        return correlation_matrix
+
     def create_visualizations(self, df):
         """
         Creates data visualizations for movies
@@ -102,21 +143,42 @@ class MovieAnalyzer:
         Args:
             df (pandas.DataFrame): DataFrame with movies
         """
-        plt.figure(figsize=(12, 4))
+        if df.empty:
+            print("No movie data available for visualization.")
+            return
+
+        plt.figure(figsize=(15, 10))
 
         # Rating distribution
-        plt.subplot(131)
+        plt.subplot(2, 2, 1)
         sns.histplot(df['vote_average'], kde=True)
         plt.title('Rating Distribution')
+        plt.xlabel('Rating')
+        plt.ylabel('Frequency')
 
         # Movie popularity
-        plt.subplot(132)
+        plt.subplot(2, 2, 2)
         sns.boxplot(x=df['popularity'])
         plt.title('Movie Popularity')
+        plt.xlabel('Popularity')
+
+        # Budget vs Rating
+        plt.subplot(2, 2, 3)
+        valid_data = df[df['budget'] > 0]
+        if not valid_data.empty:
+            sns.scatterplot(x='budget', y='vote_average', data=valid_data)
+            plt.title('Budget vs Rating')
+            plt.xlabel('Budget ($)')
+            plt.ylabel('Average Rating')
+            plt.xscale('log')
+        else:
+            plt.text(0.5, 0.5, "No valid budget data",
+                     horizontalalignment='center', verticalalignment='center')
 
         # Movie languages
-        plt.subplot(133)
-        df['original_language'].value_counts().plot(kind='pie', autopct='%1.1f%%')
+        plt.subplot(2, 2, 4)
+        language_counts = df['original_language'].value_counts()
+        language_counts.plot(kind='pie', autopct='%1.1f%%')
         plt.title('Movie Languages')
 
         plt.tight_layout()
@@ -136,9 +198,20 @@ class MovieAnalyzer:
         print("\n--- General Statistics ---")
         print(f"Average movie rating: {statistics['average_rating']:.2f}")
         print(f"Popularity median: {statistics['popularity_median']:.2f}")
+        print(f"Average budget: ${statistics['avg_budget']:,.2f}")
+        print(f"Average revenue: ${statistics['avg_revenue']:,.2f}")
+        print(f"Average ROI: {statistics['avg_roi']:.2%}")
+        print(f"Average runtime: {statistics['avg_runtime']:.1f} minutes")
 
         print("\n--- Movie Languages ---")
         print(statistics['languages'])
+
+        # Perform correlation analysis
+        correlation_matrix = self.correlation_analysis(movies)
+        if correlation_matrix is not None:
+            print("\n--- Correlation Analysis ---")
+            print("Correlation between metrics:")
+            print(correlation_matrix.round(2))
 
         self.create_visualizations(movies)
 
